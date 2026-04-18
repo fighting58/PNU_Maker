@@ -1,0 +1,7 @@
+# Temporary files
+temp_extract/
+*.tmp
+*.log
+
+# Project specific
+# official_bjd.zip (Included because it's small and needed for portable use)
