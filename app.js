@@ -10,7 +10,8 @@ const state = {
   generatedRows: [],
   headers: [],
   bjdCache: [], // Local copy of BJD database
-  showOnlyErrors: false
+  showOnlyErrors: false,
+  useBackend: false
 };
 
 // UI Elements
@@ -55,7 +56,8 @@ const getEls = () => ({
   closeHelpBtn: document.getElementById("closeHelpBtn"),
   helpModal: document.getElementById("helpModal"),
   helpContent: document.getElementById("helpContent"),
-  errorFilterBtn: document.getElementById("errorFilterBtn")
+  errorFilterBtn: document.getElementById("errorFilterBtn"),
+  useBackendToggle: document.getElementById("useBackendToggle")
 });
 
 let els = {};
@@ -66,7 +68,23 @@ let els = {};
 function log(message, level = "info") {
   if (!els.logArea) return;
   const time = new Date().toLocaleTimeString();
-  const colorClass = level === "error" ? "warn" : level === "success" ? "ok" : "";
+  
+  // Auto-expand console for critical messages
+  if ((level === "error" || level === "warn") && els.consolePanel) {
+    if (!els.consolePanel.classList.contains("expanded")) {
+      els.consolePanel.classList.add("expanded");
+      if (els.toggleConsoleBtn) {
+        els.toggleConsoleBtn.innerHTML = '<i data-lucide="chevron-down"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+  }
+
+  let colorClass = "log-info";
+  if (level === "error") colorClass = "log-error";
+  else if (level === "warn") colorClass = "log-warn";
+  else if (level === "success") colorClass = "log-success";
+
   const entry = `<div class="${colorClass}">[${time}] ${message}</div>`;
   els.logArea.innerHTML += entry;
   els.logArea.scrollTop = els.logArea.scrollHeight;
@@ -127,6 +145,22 @@ function normalizeRegionName(name) {
     .replace(/(서울|부산|대구|인천|광주|대전|울산)특별시/g, "$1")
     .replace(/(서울|부산|대구|인천|광주|대전|울산)광역시/g, "$1")
     .replace(/세종시/g, "세종");
+}
+
+/**
+ * Logic: Convert jibun to code
+ */
+function convertJibunToCode(jibunText) {
+  let jibun = String(jibunText || "").trim();
+  if (!jibun) return null;
+  let mt = "1";
+  if (jibun.startsWith("산")) { mt = "2"; jibun = jibun.slice(1).trim(); }
+  const parts = jibun.split("-");
+  const mainStr = parts[0].replace(/[^0-9]/g, "");
+  if (!mainStr) return null;
+  const bon = mainStr.padStart(4, "0");
+  const bu = (parts[1] || "0").replace(/[^0-9]/g, "").padStart(4, "0");
+  return mt + bon + bu;
 }
 
 /**
@@ -390,6 +424,12 @@ function initApp() {
     } catch (err) { log(`오류: ${err.message}`, "error"); }
   });
 
+  els.useBackendToggle.addEventListener("change", () => {
+    if (els.useBackendToggle.checked) {
+      log("백엔드 엔진 안내: 10만 건 이상의 대규모 데이터 처리 시 브라우저 멈춤 방지를 위해 권장합니다. 일반적인 건수(5만 건 이하)는 '로컬 엔진'이 훨씬 빠릅니다.", "warn");
+    }
+  });
+
   els.generateBtn.addEventListener("click", async () => {
     if (state.sourceRows.length === 0) return;
     if (state.bjdCache.length === 0) {
@@ -399,12 +439,63 @@ function initApp() {
 
     const regionKey = els.regionHeaderSelect.value;
     const jibunKey = els.jibunHeaderSelect.value;
+    const useBackend = els.useBackendToggle && els.useBackendToggle.checked;
     
     setStep(3);
     els.progressArea.style.display = "block";
     els.generateBtn.disabled = true;
     
-    log(`PNU 추출 시작 (${state.sourceRows.length.toLocaleString()}건)...`);
+    const startTime = performance.now();
+    log(`PNU 추출 시작 (${state.sourceRows.length.toLocaleString()}건, 엔진: ${useBackend ? '백엔드' : '로컬'})...`);
+
+    if (useBackend) {
+      try {
+        const chunkSize = 500;
+        const totalRows = state.sourceRows.length;
+        const resultRows = [];
+        
+        for (let i = 0; i < totalRows; i += chunkSize) {
+          const chunk = state.sourceRows.slice(i, i + chunkSize);
+          
+          // Pre-normalize for backend safety
+          const safeChunk = chunk.map(r => ({
+            ...r,
+            _normReg: normalizeRegionName(r[regionKey]),
+            _landCode: convertJibunToCode(r[jibunKey])
+          }));
+
+          const res = await fetch(`/api/process/rows?regionKey=${encodeURIComponent(regionKey)}&jibunKey=${encodeURIComponent(jibunKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(safeChunk)
+          });
+          
+          if (!res.ok) throw new Error("백엔드 엔진 오류");
+          const processedChunk = await res.json();
+          resultRows.push(...processedChunk);
+          
+          const pct = Math.round(((i + chunk.length) / totalRows) * 100);
+          els.progressBar.style.width = `${pct}%`;
+          els.progressPercent.textContent = `${pct}%`;
+          els.progressText.textContent = `백엔드 처리 중 (${resultRows.length}/${totalRows})`;
+        }
+        
+        state.generatedRows = resultRows;
+        renderPreview(state.generatedRows, true);
+        updateStats(state.generatedRows);
+        renderPnuList(state.generatedRows);
+        setStep(4);
+        const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+        log(`PNU 생성이 완료되었습니다 (백엔드 엔진, 소요시간: ${duration}초).`, "success");
+        setTimeout(() => els.progressArea.style.display = "none", 2000);
+      } catch (err) {
+        log(`백엔드 처리 실패: ${err.message}`, "error");
+        setStep(2);
+      } finally {
+        els.generateBtn.disabled = false;
+      }
+      return;
+    }
 
     // Use Web Worker for background processing
     const worker = new Worker("pnu-worker.js");
@@ -426,10 +517,12 @@ function initApp() {
         state.generatedRows = msg.result;
         renderPreview(state.generatedRows, true);
         updateStats(state.generatedRows);
+        updateStats(state.generatedRows);
         renderPnuList(state.generatedRows);
         
         setStep(4);
-        log("PNU 생성이 완료되었습니다.", "success");
+        const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+        log(`PNU 생성이 완료되었습니다 (로컬 엔진, 소요시간: ${duration}초).`, "success");
         setTimeout(() => {
           els.progressArea.style.display = "none";
           els.progressBar.style.width = "0%";

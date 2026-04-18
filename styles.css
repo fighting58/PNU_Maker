@@ -180,6 +180,33 @@ body {
   letter-spacing: 0.05em;
 }
 
+.switch-field {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.switch-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.switch-label input:checked + .switch-text {
+  color: var(--brand);
+}
+
 /* Upload Zone */
 .upload-zone {
   position: relative;
@@ -773,6 +800,11 @@ input:focus {
 .warn {
   color: var(--warn);
 }
+
+.log-error { color: var(--warn) !important; font-weight: 500; }
+.log-warn { color: var(--brand) !important; font-weight: 500; }
+.log-success { color: var(--ok) !important; }
+.log-info { color: var(--ink) !important; opacity: 0.9; }
 
 .mono {
   font-family: "JetBrains Mono", monospace;

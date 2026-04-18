@@ -5,12 +5,12 @@
 // Utility: Normalize names (copied from app.js)
 function normalizeRegionName(name) {
   return String(name || "")
-    .replace(/[.,]/g, " ") 
-    .replace(/[()\[\]]/g, "") 
+    .replace(/[.,]/g, " ")
+    .replace(/[()\[\]]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/특별자치/g, "")
-    .replace(/전라(북|남)도/g, "전$1") 
+    .replace(/전라(북|남)도/g, "전$1")
     .replace(/경상(북|남)도/g, "경$1")
     .replace(/충청(북|남)도/g, "충$1")
     .replace(/(강원|경기|제주)도/g, "$1")
@@ -26,7 +26,7 @@ function convertJibunToCode(jibunText) {
   let mt = "1";
   if (jibun.startsWith("산")) { mt = "2"; jibun = jibun.slice(1).trim(); }
   const parts = jibun.split("-");
-  const mainStr = parts[0].replace(/[^0-9]/g, ""); 
+  const mainStr = parts[0].replace(/[^0-9]/g, "");
   if (!mainStr) return null;
   const bon = mainStr.padStart(4, "0");
   const bu = (parts[1] || "0").replace(/[^0-9]/g, "").padStart(4, "0");
@@ -38,16 +38,16 @@ function resolveBjdCode(regionValue, lookup) {
   const raw = String(regionValue || "").trim();
   if (!raw) return null;
   if (/^\d{10}$/.test(raw)) return raw;
-  
+
   const normalized = normalizeRegionName(raw);
   if (lookup.queryToCode.has(normalized)) return lookup.queryToCode.get(normalized);
   if (lookup.fullNameToCode.has(normalized)) return lookup.fullNameToCode.get(normalized);
-  
+
   // Fallback 1: Suffix match
   for (const [fullName, code] of lookup.fullNameToCode.entries()) {
     if (fullName.endsWith(normalized)) return code;
   }
-  
+
   // Fallback 2: Keyword inclusion
   const keywords = normalized.split(" ").filter(k => k.length > 1);
   if (keywords.length > 0) {
@@ -60,17 +60,17 @@ function resolveBjdCode(regionValue, lookup) {
 }
 
 // Main processing logic
-self.onmessage = async function(e) {
+self.onmessage = async function (e) {
   const { type, rows, bjdCache, regionKey, jibunKey } = e.data;
 
   if (type === "PROCESS") {
     try {
       const uniqueNames = Array.from(new Set(rows.map((row) => String(row[regionKey] || "").trim()).filter(Boolean)));
       const totalUnique = uniqueNames.length;
-      
-      const lookup = { 
-        queryToCode: new Map(), 
-        fullNameToCode: new Map() 
+
+      const lookup = {
+        queryToCode: new Map(),
+        fullNameToCode: new Map()
       };
 
       for (let i = 0; i < totalUnique; i++) {
@@ -92,12 +92,12 @@ self.onmessage = async function(e) {
             }
           }
         }
-        
+
         if (i % 20 === 0 || i === totalUnique - 1) {
-          self.postMessage({ 
-            type: "PROGRESS", 
-            phase: "LOOKUP", 
-            current: i + 1, 
+          self.postMessage({
+            type: "PROGRESS",
+            phase: "LOOKUP",
+            current: i + 1,
             total: totalUnique,
             percent: Math.round(((i + 1) / totalUnique) * 50)
           });
@@ -108,7 +108,7 @@ self.onmessage = async function(e) {
       const resultRows = rows.map((row, idx) => {
         const rawRegion = row[regionKey];
         const rawJibun = row[jibunKey];
-        
+
         const result = { ...row };
         let bjdCode = null;
         let landCode = null;
@@ -142,10 +142,10 @@ self.onmessage = async function(e) {
         }
 
         if (idx % 100 === 0 || idx === totalRows - 1) {
-          self.postMessage({ 
-            type: "PROGRESS", 
-            phase: "GENERATE", 
-            current: idx + 1, 
+          self.postMessage({
+            type: "PROGRESS",
+            phase: "GENERATE",
+            current: idx + 1,
             total: totalRows,
             percent: 50 + Math.round(((idx + 1) / totalRows) * 50)
           });
