@@ -57,7 +57,9 @@ const getEls = () => ({
   helpModal: document.getElementById("helpModal"),
   helpContent: document.getElementById("helpContent"),
   errorFilterBtn: document.getElementById("errorFilterBtn"),
-  useBackendToggle: document.getElementById("useBackendToggle")
+  useBackendToggle: document.getElementById("useBackendToggle"),
+  splashScreen: document.getElementById("splashScreen"),
+  splashText: document.getElementById("splashText")
 });
 
 let els = {};
@@ -197,22 +199,28 @@ async function fetchBjdCandidates(query) {
  * API: Fetch entire BJD cache for local matching
  */
 async function fetchBjdCache() {
-  log("법정동 DB 캐시 로드 중...");
+  log("로컬 엔진용 DB 데이터를 서버에서 가져오는 중...", "info");
   try {
     const res = await fetch("/api/bjd/all");
-    if (res.status === 503) {
-      log("DB 로딩 중입니다. 잠시 후 시도... (10초 대기)", "warn");
-      await new Promise(r => setTimeout(r, 10000));
-      return fetchBjdCache();
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      state.bjdCache = data;
+      log(`DB 로드 성공: ${state.bjdCache.length.toLocaleString()}건`, "success");
+      // 진단용: 첫 3개 데이터 출력
+      const samples = data.slice(0, 3).map(i => i.name).join(", ");
+      log(`데이터 샘플: ${samples}`, "info");
+      return true;
+    } else {
+      log("서버로부터 받은 DB 데이터가 비어있습니다. DB 동기화를 먼저 진행하세요.", "error");
+      return false;
     }
-    state.bjdCache = await res.json();
-    log(`DB 캐시 로드 완료: ${state.bjdCache.length.toLocaleString()}건`, "success");
-    return true;
   } catch (e) {
-    log("DB 캐시 로드 실패. 서버 연결을 확인하세요.", "error");
+    log(`DB 로드 실패: ${e.message}`, "error");
     return false;
   }
 }
+
+
 
 /**
  * UI: Render Table
@@ -600,18 +608,31 @@ function initApp() {
   });
 
   // DB Handlers
-  els.dbUpdateBtn.addEventListener("click", async () => {
-    if(!confirm("최신 DB를 동기화하시겠습니까?")) return;
-    els.dbUpdateBtn.disabled = true;
-    log("DB 동기화 진행 중...");
-    try {
-      const res = await fetch("/db/update-official", { method: "POST" });
-      const data = await res.json();
-      log(`결과: ${data.message}`, "success");
-      refreshDbStatus();
-    } catch (e) { log("동기화 실패", "error"); }
-    finally { els.dbUpdateBtn.disabled = false; }
-  });
+  if (els.dbUpdateBtn) {
+    els.dbUpdateBtn.onclick = async () => {
+      if(!confirm("서버에서 최신 법정동 데이터를 다운로드하고 동기화하시겠습니까?\n(약 수초~수십초 소요될 수 있습니다)")) return;
+      
+      try {
+        els.dbUpdateBtn.disabled = true;
+        log("최신 DB 다운로드 및 동기화 시작...", "info");
+        
+        const res = await fetch("/db/update-official", { method: "POST" });
+        const result = await res.json();
+        
+        if (res.ok && result.status === "success") {
+          log(`성공: ${result.message}`, "success");
+          refreshDbStatus();
+        } else {
+          log(`실패: ${result.message || "서버 오류"}`, "error");
+        }
+      } catch (err) {
+        log("연결 실패: 서버 상태를 확인하세요.", "error");
+      } finally {
+        els.dbUpdateBtn.disabled = false;
+      }
+    };
+  }
+
 
 
   // Reset App
@@ -642,10 +663,55 @@ function initApp() {
 
   els.resetAppBtn.addEventListener("click", resetApp);
 
-  refreshDbStatus();
-  
-  // Background Cache Load
-  fetchBjdCache();
+  // Splash Screen Hider / Poller
+  const checkInitialReady = async () => {
+    try {
+      const res = await fetch("/api/bjd/status");
+      if (!res.ok && res.status !== 503) throw new Error("Connection failed");
+      
+      const data = await res.json();
+      const isReady = data.isReady || data.IsReady;
+      const count = data.count || data.Count || 0;
+      
+      if (isReady) {
+        if (els.splashText) els.splashText.textContent = "브라우저 캐시 동기화 중...";
+        
+        // Default is False (Local Engine), so we MUST fetch cache before hiding splash
+        state.useBackend = false;
+        if (els.useBackendToggle) els.useBackendToggle.checked = false;
+
+        fetchBjdCache().then(() => {
+          if (els.splashText) els.splashText.textContent = "준비 완료!";
+          setTimeout(() => {
+            if (els.splashScreen) {
+               els.splashScreen.classList.add("fade-out");
+               setTimeout(() => {
+                 els.splashScreen.remove();
+                 log("시스템 준비가 완료되었습니다. (로컬 엔진 활성)", "success");
+               }, 1000);
+            }
+          }, 500);
+          refreshDbStatus();
+        });
+      } else {
+        if (els.splashText) {
+          if (count > 0) {
+            els.splashText.textContent = `데이터 엔진 빌드 중... (${count.toLocaleString()}건)`;
+          } else {
+            els.splashText.textContent = "데이터베이스 연결 중...";
+          }
+        }
+        setTimeout(checkInitialReady, 800);
+      }
+    } catch (e) {
+      setTimeout(checkInitialReady, 1000);
+    }
+  };
+
+  els.resetAppBtn.addEventListener("click", resetApp);
+
+  // Start polling
+  checkInitialReady();
 }
 
 document.addEventListener("DOMContentLoaded", initApp);

@@ -14,16 +14,16 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000') do (
 echo [2/2] Starting PowerShell Server...
 start /b powershell -ExecutionPolicy Bypass -File server.ps1
 
-echo [Info] Server is initializing. Please wait a moment...
-timeout /t 2 /nobreak > nul
+echo [Info] Starting Server and Browser...
+timeout /t 1 /nobreak > nul
 
 echo [Info] Opening browser...
 start http://localhost:8000
 
 echo.
 echo =======================================================
-echo  makePNU Workbench is ACTIVE.
-echo  Keep this window open while using the application.
+echo  makePNU Workbench is STARTING.
+echo  The splash screen will dismiss once data is loaded.
 echo  Press Ctrl+C here to stop the server when finished.
 echo =======================================================
 echo.

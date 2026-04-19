@@ -1,25 +1,24 @@
 /**
- * PNU Worker - Handles heavy PNU generation and BJD matching in a separate thread.
+ * PNU Worker - Powerful Matching Engine (Restored + Enhanced)
  */
 
-// Utility: Normalize names (copied from app.js)
-function normalizeRegionName(name) {
-  return String(name || "")
-    .replace(/[.,]/g, " ")
-    .replace(/[()\[\]]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
+function normalize(name) {
+  if (!name) return "";
+  // 1. User's original rule: replace region prefixes
+  return String(name)
     .replace(/특별자치/g, "")
-    .replace(/전라(북|남)도/g, "전$1")
+    .replace(/전라(북|남)도/g, "전$1") 
     .replace(/경상(북|남)도/g, "경$1")
     .replace(/충청(북|남)도/g, "충$1")
     .replace(/(강원|경기|제주)도/g, "$1")
     .replace(/(서울|부산|대구|인천|광주|대전|울산)특별시/g, "$1")
     .replace(/(서울|부산|대구|인천|광주|대전|울산)광역시/g, "$1")
-    .replace(/세종시/g, "세종");
+    .replace(/세종시/g, "세종")
+    .replace(/ /g, "") // 2. Remove all spaces for loose matching
+    .replace(/[.,()\[\]]/g, "")
+    .trim();
 }
 
-// Utility: Convert jibun to code (copied from app.js)
 function convertJibunToCode(jibunText) {
   let jibun = String(jibunText || "").trim();
   if (!jibun) return null;
@@ -33,129 +32,53 @@ function convertJibunToCode(jibunText) {
   return mt + bon + bu;
 }
 
-// Logic: Resolve BJD Code (Local version)
-function resolveBjdCode(regionValue, lookup) {
-  const raw = String(regionValue || "").trim();
-  if (!raw) return null;
-  if (/^\d{10}$/.test(raw)) return raw;
-
-  const normalized = normalizeRegionName(raw);
-  if (lookup.queryToCode.has(normalized)) return lookup.queryToCode.get(normalized);
-  if (lookup.fullNameToCode.has(normalized)) return lookup.fullNameToCode.get(normalized);
-
-  // Fallback 1: Suffix match
-  for (const [fullName, code] of lookup.fullNameToCode.entries()) {
-    if (fullName.endsWith(normalized)) return code;
-  }
-
-  // Fallback 2: Keyword inclusion
-  const keywords = normalized.split(" ").filter(k => k.length > 1);
-  if (keywords.length > 0) {
-    for (const [fullName, code] of lookup.fullNameToCode.entries()) {
-      if (keywords.every(k => fullName.includes(k))) return code;
-    }
-  }
-
-  return null;
-}
-
-// Main processing logic
-self.onmessage = async function (e) {
+self.onmessage = function (e) {
   const { type, rows, bjdCache, regionKey, jibunKey } = e.data;
 
   if (type === "PROCESS") {
     try {
-      const uniqueNames = Array.from(new Set(rows.map((row) => String(row[regionKey] || "").trim()).filter(Boolean)));
-      const totalUnique = uniqueNames.length;
+      if (!bjdCache || bjdCache.length === 0) throw new Error("DB 캐시가 비어있습니다.");
 
-      const lookup = {
-        queryToCode: new Map(),
-        fullNameToCode: new Map()
-      };
+      // Building a highly efficient normalized index
+      const lookup = bjdCache.map(v => ({
+        code: v.code,
+        norm: normalize(v.name)
+      }));
 
-      for (let i = 0; i < totalUnique; i++) {
-        const rawQuery = uniqueNames[i];
-        const normalizedQuery = normalizeRegionName(rawQuery);
-        const keywords = normalizedQuery.split(" ").filter(k => k.length > 1);
-
-        if (keywords.length > 0) {
-          const candidates = bjdCache.filter(item => {
-            const normalizedItemName = normalizeRegionName(item.name);
-            return keywords.every(k => normalizedItemName.includes(k));
-          });
-
-          if (candidates.length > 0) {
-            const bestCandidate = candidates.find(c => normalizeRegionName(c.name) === normalizedQuery) || candidates[0];
-            lookup.queryToCode.set(normalizedQuery, bestCandidate.code);
-            for (const c of candidates) {
-              lookup.fullNameToCode.set(normalizeRegionName(c.name), c.code);
-            }
-          }
-        }
-
-        if (i % 20 === 0 || i === totalUnique - 1) {
-          self.postMessage({
-            type: "PROGRESS",
-            phase: "LOOKUP",
-            current: i + 1,
-            total: totalUnique,
-            percent: Math.round(((i + 1) / totalUnique) * 50)
-          });
-        }
-      }
-
-      const totalRows = rows.length;
+      const total = rows.length;
       const resultRows = rows.map((row, idx) => {
-        const rawRegion = row[regionKey];
-        const rawJibun = row[jibunKey];
-
-        const result = { ...row };
-        let bjdCode = null;
-        let landCode = null;
-        let error = "";
-
-        // 1. Validate inputs
-        if (!String(rawRegion || "").trim()) {
-          error = "FAIL: 행정구역 정보 누락";
-        } else if (!String(rawJibun || "").trim()) {
-          error = "FAIL: 지번 정보 누락";
-        } else {
-          // 2. Resolve BJD
-          bjdCode = resolveBjdCode(rawRegion, lookup);
-          if (!bjdCode) {
-            error = `FAIL: [${rawRegion}] 법정동 매칭 실패`;
-          } else {
-            // 3. Resolve Jibun
-            landCode = convertJibunToCode(rawJibun);
-            if (!landCode) {
-              error = `FAIL: [${rawJibun}] 지번 형식 오류`;
-            }
+        const out = { ...row };
+        const rawRegion = String(row[regionKey] || "").trim();
+        const normRegion = normalize(rawRegion);
+        
+        let match = null;
+        if (normRegion) {
+          // 1. Exact or suffix match using normalized strings
+          match = lookup.find(idx => idx.norm === normRegion || idx.norm.endsWith(normRegion));
+          
+          if (!match) {
+            // 2. Fragment match: If input is '분당구 이매동', it should find '경기성남시분당구이매동'
+            match = lookup.find(idx => idx.norm.includes(normRegion));
           }
         }
 
-        if (error) {
-          result.PNU = "";
-          result.PNU_ERROR = error;
+        const landCode = convertJibunToCode(row[jibunKey]);
+        if (match && landCode) {
+          out.PNU = match.code + landCode;
+          out.PNU_ERROR = "";
         } else {
-          result.PNU = `${bjdCode}${landCode}`;
-          result.PNU_ERROR = "";
+          out.PNU = "";
+          if (!match) out.PNU_ERROR = `FAIL: 법정동 매칭 실패 [${rawRegion}]`;
+          else if (!landCode) out.PNU_ERROR = `FAIL: 지번 형식 오류 [${row[jibunKey]}]`;
         }
 
-        if (idx % 100 === 0 || idx === totalRows - 1) {
-          self.postMessage({
-            type: "PROGRESS",
-            phase: "GENERATE",
-            current: idx + 1,
-            total: totalRows,
-            percent: 50 + Math.round(((idx + 1) / totalRows) * 50)
-          });
+        if (idx % 200 === 0 || idx === total - 1) {
+          self.postMessage({ type: "PROGRESS", current: idx + 1, total, percent: Math.round(((idx + 1)/total)*100) });
         }
-
-        return result;
+        return out;
       });
 
       self.postMessage({ type: "DONE", result: resultRows });
-
     } catch (err) {
       self.postMessage({ type: "ERROR", message: err.message });
     }
