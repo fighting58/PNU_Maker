@@ -2,7 +2,7 @@
 
 > **지번 주소를 바탕으로 19자리 PNU 코드를 즉시 생성하는 전문 데이터 워크벤치**
 
-![Main Banner](https://github.com/fighting58/PNU_Maker/raw/main/verify_design_enhancements_1776949480390.webp)
+![Main Banner](https://github.com/fighting58/PNU_Maker/raw/main/banner.webp)
 
 `makePNU`는 엑셀 또는 CSV 형태의 지번 주소 데이터를 행정표준코드 기반의 19자리 PNU(필지식별번호)로 정밀하게 변환해주는 도구입니다. 복잡한 데이터베이스 설정 없이 즉시 실행 가능한 이동식 환경을 제공하며, 보안과 성능을 모두 고려한 하이브리드 엔진을 탑재하고 있습니다.
 
