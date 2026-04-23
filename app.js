@@ -637,31 +637,48 @@ function initApp() {
 
   // Reset App
   const resetApp = () => {
-    if (state.sourceRows.length > 0 && !confirm("진행 중인 모든 데이터가 삭제됩니다. 새 작업을 시작하시겠습니까?")) return;
+    // If there's data, ask for confirmation
+    if (state.sourceRows && state.sourceRows.length > 0) {
+      if (!confirm("진행 중인 모든 데이터가 삭제됩니다. 새 작업을 시작하시겠습니까?")) {
+        return;
+      }
+    }
     
+    log("새 작업을 시작합니다. 모든 데이터를 초기화합니다.", "info");
+
     state.sourceFileName = "";
     state.sourceRows = [];
     state.generatedRows = [];
     state.headers = [];
     
-    els.fileInput.value = "";
-    els.fileMeta.textContent = ".xlsx, .xls, .csv 지원";
-    els.regionHeaderSelect.innerHTML = "";
-    els.jibunHeaderSelect.innerHTML = "";
-    els.previewTable.querySelector("thead").innerHTML = "";
-    els.previewTable.querySelector("tbody").innerHTML = "";
-    els.emptyState.style.display = "flex";
-    els.pnuListArea.value = "";
-    els.pnuListStats.textContent = "PNU가 생성되면 목록이 여기에 표시됩니다.";
-    els.copyBtn.disabled = true;
-    els.downloadBtn.disabled = true;
+    if (els.fileInput) els.fileInput.value = "";
+    if (els.fileMeta) els.fileMeta.textContent = ".xlsx, .xls, .csv 지원";
+    if (els.regionHeaderSelect) els.regionHeaderSelect.innerHTML = "";
+    if (els.jibunHeaderSelect) els.jibunHeaderSelect.innerHTML = "";
+    if (els.previewTable) {
+      const Head = els.previewTable.querySelector("thead");
+      const Body = els.previewTable.querySelector("tbody");
+      if (Head) Head.innerHTML = "";
+      if (Body) Body.innerHTML = "";
+    }
+    if (els.emptyState) els.emptyState.style.display = "flex";
+    if (els.pnuListArea) els.pnuListArea.value = "";
+    if (els.pnuListStats) els.pnuListStats.textContent = "PNU가 생성되면 목록이 여기에 표시됩니다.";
+    if (els.copyBtn) els.copyBtn.disabled = true;
+    if (els.downloadBtn) els.downloadBtn.disabled = true;
     
     updateStats([]);
     setStep(1);
-    log("시스템이 초기화되었습니다. 새로운 파일을 업로드해 주세요.", "info");
+
+    // Scroll to top to show the upload area
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    log("시스템이 초기화되었습니다. 새로운 파일을 업로드해 주세요.", "success");
   };
 
-  els.resetAppBtn.addEventListener("click", resetApp);
+  if (els.resetAppBtn) {
+    els.resetAppBtn.addEventListener("click", resetApp);
+  }
 
   // Splash Screen Hider / Poller
   const checkInitialReady = async () => {
@@ -708,7 +725,6 @@ function initApp() {
     }
   };
 
-  els.resetAppBtn.addEventListener("click", resetApp);
 
   // Start polling
   checkInitialReady();

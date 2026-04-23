@@ -36,198 +36,243 @@
       </div>
     </div>
     
-    <div class="app-layout">
-      <!-- 1. Sidebar: Control Panel (Step 1 & 2) -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
+    <div class="app-container">
+      <!-- Top Navigation -->
+      <nav class="top-nav">
+        <div class="nav-left">
           <div class="logo">
             <div class="logo-icon"><i data-lucide="layers"></i></div>
-            <span>makePNU</span>
+            <span>PNU Generator</span>
           </div>
           <p class="eyebrow">v2.0 Professional</p>
         </div>
-
-        <nav class="sidebar-content">
-          <section class="step-card" id="step1">
-            <div class="step-header">
-              <span class="step-num">1</span>
-              <h3>데이터 원본 업로드</h3>
-            </div>
-            <div class="field">
-              <div class="upload-zone">
-                <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
-                <label for="fileInput">
-                  <i data-lucide="upload-cloud"></i>
-                  <span>파일 선택 또는 드래그</span>
-                  <small id="fileMeta">.xlsx, .xls, .csv 지원</small>
-                </label>
-              </div>
-            </div>
-          </section>
-
-          <section class="step-card disabled" id="step2">
-            <div class="step-header">
-              <span class="step-num">2</span>
-              <h3>컬럼 매핑 및 실행</h3>
-            </div>
-            <div class="field">
-              <span>행정구역 (동/리)</span>
-              <select id="regionHeaderSelect"></select>
-            </div>
-            <div class="field">
-              <span>지번 (본번-부번)</span>
-              <select id="jibunHeaderSelect"></select>
-            </div>
-            <div class="field switch-field">
-              <label class="switch-label">
-                <input type="checkbox" id="useBackendToggle" />
-                <span class="switch-text">백엔드 엔진 사용 (대용량 권장)</span>
-              </label>
-            </div>
-            <button id="generateBtn" class="btn primary full" disabled>
-              <i data-lucide="play-circle"></i> PNU 생성 실행
-            </button>
-            <button id="extractPnuBtn" class="btn ghost full" style="display: none;">
-              <i data-lucide="list"></i> PNU 리스트 추출
-            </button>
-          </section>
-
-          <div class="sidebar-divider"></div>
-
-          <section class="step-card">
-            <div class="step-header">
-              <i data-lucide="database"></i>
-              <h3>DB 상태</h3>
-            </div>
-            <div class="db-status-mini">
-              <p id="dbStatus">연결 확인 중...</p>
-              <button id="toggleDbPanel" class="btn-text">관리 도구 열기 <i data-lucide="chevron-right"></i></button>
-            </div>
-          </section>
-        </nav>
-
-        <div class="sidebar-footer">
-          <button id="openHelpBtn" class="btn-text">
-            <i data-lucide="help-circle" style="width:14px; height:14px;"></i> 사용법 가이드
+        <div class="nav-center">
+          <button id="openHelpBtn" class="nav-link">
+            <i data-lucide="help-circle"></i> 사용법 가이드
           </button>
+          <button id="toggleDbPanel" class="nav-link">
+            <i data-lucide="database"></i> DB 관리
+          </button>
+        </div>
+        <div class="nav-right">
           <div class="system-time">
             <i data-lucide="clock"></i>
             <span id="currentTime">--:--:--</span>
           </div>
+          <button id="resetAppBtn" class="btn ghost sm">
+            <i data-lucide="refresh-ccw"></i> 새 작업
+          </button>
         </div>
-      </aside>
+      </nav>
 
-      <!-- 2. Main Workspace -->
-      <main class="workspace">
-        <!-- Dashboard Header: Progress & Actions -->
-        <header class="workspace-header">
-          <div class="stepper">
-            <div class="step active" data-step="1">
-              <div class="dot"></div>
-              <span>업로드</span>
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Hero Section -->
+        <header class="hero-section">
+          <div class="hero-content">
+            <h1>지번 주소를 바탕으로 PNU를 생성</h1>
+            <p class="hero-subtitle">엑셀 및 CSV 주소 데이터를 19자리 PNU 코드로 즉시 변환하세요.</p>
+            
+            <!-- Feature Highlights Section -->
+            <div class="feature-highlights">
+              <div class="feature-item">
+                <div class="feature-icon"><i data-lucide="refresh-cw"></i></div>
+                <div class="feature-info">
+                  <span class="feature-title">공식 DB 동기화</span>
+                  <span class="feature-desc">code.go.kr 데이터 직접 연결</span>
+                </div>
+              </div>
+              <div class="feature-divider"></div>
+              <div class="feature-item">
+                <div class="feature-icon"><i data-lucide="zap"></i></div>
+                <div class="feature-info">
+                  <span class="feature-title">하이브리드 엔진</span>
+                  <span class="feature-desc">로컬 & 서버 병렬 처리 지원</span>
+                </div>
+              </div>
+              <div class="feature-divider"></div>
+              <div class="feature-item">
+                <div class="feature-icon"><i data-lucide="wand-2"></i></div>
+                <div class="feature-info">
+                  <span class="feature-title">지능형 컬럼 매핑</span>
+                  <span class="feature-desc">주소/지번 열 자동 감지</span>
+                </div>
+              </div>
             </div>
-            <div class="line"></div>
-            <div class="step" data-step="2">
-              <div class="dot"></div>
-              <span>매핑</span>
-            </div>
-            <div class="line"></div>
-            <div class="step" data-step="3">
-              <div class="dot"></div>
-              <span>생성</span>
-            </div>
-            <div class="line"></div>
-            <div class="step" data-step="4">
-              <div class="dot"></div>
-              <span>완료</span>
-            </div>
-          </div>
-
-          <div class="header-actions">
-            <button id="resetAppBtn" class="btn ghost" title="모든 내역 초기화">
-              <i data-lucide="refresh-ccw"></i> 새 작업
-            </button>
-            <div class="export-options">
-              <label class="radio-chip">
-                <input type="radio" name="exportType" value="xlsx" checked />
-                <span>XLSX</span>
-              </label>
-              <label class="radio-chip">
-                <input type="radio" name="exportType" value="csv" />
-                <span>CSV</span>
-              </label>
-            </div>
-            <button id="downloadBtn" class="btn secondary" disabled>
-              <i data-lucide="download"></i> 결과 저장
-            </button>
           </div>
         </header>
 
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-          <div class="stat-item">
-            <span class="label">전체 레코드</span>
-            <span class="value" id="totalCount">0</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item success">
-            <span class="label">생성 성공</span>
-            <span class="value ok" id="successCount">0</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item failure">
-            <span class="label">생성 실패</span>
-            <span class="value warn" id="failCount">0</span>
-          </div>
+        <!-- Workflow Area -->
+        <div class="workflow-grid">
+          <!-- Left: Control Panel -->
+          <section class="control-panel">
+            <div class="control-cards">
+              <section class="step-card" id="step1">
+                <div class="step-header">
+                  <span class="step-num">1</span>
+                  <h3>데이터 원본 업로드</h3>
+                </div>
+                <div class="field">
+                  <div class="upload-zone">
+                    <input id="fileInput" type="file" accept=".xlsx,.xls,.cvs" />
+                    <label for="fileInput">
+                      <i data-lucide="upload-cloud"></i>
+                      <span>파일 선택 또는 드래그</span>
+                      <small id="fileMeta">.xlsx, .xls, .csv 지원</small>
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section class="step-card disabled" id="step2">
+                <div class="step-header">
+                  <span class="step-num">2</span>
+                  <h3>컬럼 매핑 및 실행</h3>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <span>행정구역 (동/리)</span>
+                    <select id="regionHeaderSelect"></select>
+                  </div>
+                  <div class="field">
+                    <span>지번 (본번-부번)</span>
+                    <select id="jibunHeaderSelect"></select>
+                  </div>
+                </div>
+                <div class="field switch-field">
+                  <label class="switch-label">
+                    <input type="checkbox" id="useBackendToggle" />
+                    <span class="switch-text">백엔드 엔진 사용 (대용량 권장)</span>
+                  </label>
+                </div>
+                <div class="button-group">
+                  <button id="generateBtn" class="btn primary" disabled>
+                    <i data-lucide="play-circle"></i> PNU 생성 실행
+                  </button>
+                  <button id="extractPnuBtn" class="btn ghost" style="display: none;">
+                    <i data-lucide="list"></i> PNU 리스트 추출
+                  </button>
+                </div>
+              </section>
+            </div>
+            
+            <div class="db-status-bar">
+               <i data-lucide="database"></i>
+               <span id="dbStatus">연결 확인 중...</span>
+            </div>
+          </section>
+
+          <!-- Right: Workspace -->
+          <section class="workspace">
+            <div class="workspace-card">
+              <header class="workspace-header">
+                <div class="stepper">
+                  <div class="step active" data-step="1">
+                    <div class="dot"></div>
+                    <span>업로드</span>
+                  </div>
+                  <div class="line"></div>
+                  <div class="step" data-step="2">
+                    <div class="dot"></div>
+                    <span>매핑</span>
+                  </div>
+                  <div class="line"></div>
+                  <div class="step" data-step="3">
+                    <div class="dot"></div>
+                    <span>생성</span>
+                  </div>
+                  <div class="line"></div>
+                  <div class="step" data-step="4">
+                    <div class="dot"></div>
+                    <span>완료</span>
+                  </div>
+                </div>
+
+                <div class="header-actions">
+                  <div class="export-options">
+                    <label class="radio-chip">
+                      <input type="radio" name="exportType" value="xlsx" checked />
+                      <span>XLSX</span>
+                    </label>
+                    <label class="radio-chip">
+                      <input type="radio" name="exportType" value="csv" />
+                      <span>CSV</span>
+                    </label>
+                  </div>
+                  <button id="downloadBtn" class="btn secondary" disabled>
+                    <i data-lucide="download"></i> 결과 저장
+                  </button>
+                </div>
+              </header>
+
+              <!-- Stats Bar -->
+              <div class="stats-bar">
+                <div class="stat-item">
+                  <span class="label">전체 레코드</span>
+                  <span class="value" id="totalCount">0</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item success">
+                  <span class="label">생성 성공</span>
+                  <span class="value ok" id="successCount">0</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item failure">
+                  <span class="label">생성 실패</span>
+                  <span class="value warn" id="failCount">0</span>
+                </div>
+              </div>
+
+              <!-- Preview Table Area -->
+              <section class="view-panel preview-area">
+                <div class="panel-header">
+                  <div class="panel-title-group">
+                    <h3>데이터 프리뷰</h3>
+                    <span class="muted">상위 100개 항목을 표시합니다.</span>
+                  </div>
+                  <button id="errorFilterBtn" class="btn ghost sm" title="오류 레코드만 보기">
+                    <i data-lucide="alert-circle"></i> 오류만 보기
+                  </button>
+                </div>
+                <div id="progressArea" class="action-progress" style="display: none;">
+                  <div class="progress-info">
+                    <span id="progressText">PNU 생성 중...</span>
+                    <span id="progressPercent">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="progressBar" class="progress-fill"></div>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table id="previewTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                  </table>
+                  <div id="emptyState" class="empty-state">
+                    <i data-lucide="file-spreadsheet"></i>
+                    <p>파일을 업로드하면 데이터가 여기에 표시됩니다.</p>
+                  </div>
+                </div>
+              </section>
+
+              <!-- PNU List Export Area -->
+              <section class="view-panel pnu-list-area">
+                <div class="panel-header">
+                  <div class="title-group">
+                    <h3>PNU 리스트 출력</h3>
+                    <p class="muted" id="pnuListStats">배열 형태의 가공 데이터입니다.</p>
+                  </div>
+                  <button id="copyBtn" class="btn primary sm" disabled>
+                    <i data-lucide="clipboard"></i> 복사
+                  </button>
+                </div>
+                <textarea id="pnuListArea" rows="4" readonly placeholder="목록 추출 전"></textarea>
+              </section>
+            </div>
+          </section>
         </div>
 
-        <!-- Preview Table Area -->
-        <section class="view-panel preview-area">
-          <div class="panel-header">
-            <div class="panel-title-group">
-              <h3>데이터 프리뷰</h3>
-              <span class="muted">상위 100개 항목을 표시합니다.</span>
-            </div>
-            <button id="errorFilterBtn" class="btn ghost sm" title="오류 레코드만 보기">
-              <i data-lucide="alert-circle"></i> 오류만 보기
-            </button>
-          </div>
-          <div id="progressArea" class="action-progress" style="display: none;">
-            <div class="progress-info">
-              <span id="progressText">PNU 생성 중...</span>
-              <span id="progressPercent">0%</span>
-            </div>
-            <div class="progress-track">
-              <div id="progressBar" class="progress-fill"></div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table id="previewTable">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
-            <div id="emptyState" class="empty-state">
-              <i data-lucide="file-spreadSheet"></i>
-              <p>파일을 업로드하면 데이터가 여기에 표시됩니다.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- PNU List Export Area -->
-        <section class="view-panel pnu-list-area">
-          <div class="panel-header">
-            <div class="title-group">
-              <h3>PNU 리스트 출력</h3>
-              <p class="muted" id="pnuListStats">SQL 또는 다른 플랫폼에서 사용하기 위한 배열 형태의 출력입니다.</p>
-            </div>
-            <button id="copyBtn" class="btn primary sm" disabled>
-              <i data-lucide="clipboard"></i> 복사
-            </button>
-          </div>
-          <textarea id="pnuListArea" rows="4" readonly placeholder="PNU가 생성되면 목록이 여기에 표시됩니다."></textarea>
-        </section>
-
-        <!-- Floating/Collapsible Console Panel -->
+        <!-- Floating Console Panel -->
         <section class="console-panel" id="consolePanel">
           <div class="console-header" id="consoleHandle">
             <div class="tabs">
@@ -248,18 +293,16 @@
                   <span>행정동코드 파일 동기화</span>
                   <div class="sync-actions">
                     <button id="dbUpdateBtn" class="btn primary"><i data-lucide="refresh-cw"></i> 최신 DB 동기화</button>
-                    <p class="muted mt-2">행정표준관리시스템(code.go.kr)에서 최신 법정동 코드를 직접 내려받습니다.</p>
+                    <p class="muted mt-2">code.go.kr에서 최신 법정동 코드를 다운로드합니다.</p>
                   </div>
                 </div>
-                
                 <div class="sidebar-divider"></div>
-                
                 <div class="field">
-                  <span>수동 파일 업로드 (ZIP/TXT)</span>
+                  <span>수동 업로드</span>
                   <input id="dbFileInput" type="file" accept=".zip,.txt" />
                   <div class="toolbar mt-2">
-                    <button id="dbUploadBtn" class="btn ghost sm"><i data-lucide="upload"></i> 업로드 실행</button>
-                    <button id="dbResetBtn" class="btn ghost sm warn"><i data-lucide="trash-2"></i> 데이터 초기화</button>
+                    <button id="dbUploadBtn" class="btn ghost sm"><i data-lucide="upload"></i> 업로드</button>
+                    <button id="dbResetBtn" class="btn ghost sm warn"><i data-lucide="trash-2"></i> 리셋</button>
                   </div>
                 </div>
               </div>
@@ -297,4 +340,3 @@
     </script>
   </body>
 </html>
-
