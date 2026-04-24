@@ -1,11 +1,20 @@
-# server.ps1 - Final Administrative Unit Validation Engine
-# Strictly rejects broad parent matches when specific units (Gun, Eup, Myeon, Dong, Ri) are unmatched in the input.
+param([int]$ParentPid = 0)
 
-if ($PSVersionTable.PSVersion.Major -ge 7) {
-    try { [System.Text.Encoding]::RegisterProvider([System.Text.CodePagesEncodingProvider]::Instance) } catch { }
+if ($ParentPid -gt 0) {
+    $currentPid = $PID
+    $monitorScript = {
+        param($ppid, $cpid)
+        while ($true) {
+            if (-not (Get-Process -Id $ppid -ErrorAction SilentlyContinue)) {
+                Stop-Process -Id $cpid -Force
+                break
+            }
+            Start-Sleep -Seconds 2
+        }
+    }
+    $powershell = [PowerShell]::Create().AddScript($monitorScript).AddArgument($ParentPid).AddArgument($currentPid)
+    $powershell.BeginInvoke()
 }
-$utf8 = [System.Text.Encoding]::UTF8; [console]::OutputEncoding = $utf8
-add-type -assemblyname system.io.compression.filesystem
 
 function global:Get-CoreBjdName([string]$raw) {
     if ([string]::IsNullOrWhiteSpace($raw)) { return "" }

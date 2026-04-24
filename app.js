@@ -206,9 +206,7 @@ async function fetchBjdCache() {
     if (Array.isArray(data) && data.length > 0) {
       state.bjdCache = data;
       log(`DB 로드 성공: ${state.bjdCache.length.toLocaleString()}건`, "success");
-      // 진단용: 첫 3개 데이터 출력
-      const samples = data.slice(0, 3).map(i => i.name).join(", ");
-      log(`데이터 샘플: ${samples}`, "info");
+
       return true;
     } else {
       log("서버로부터 받은 DB 데이터가 비어있습니다. DB 동기화를 먼저 진행하세요.", "error");
