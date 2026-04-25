@@ -1,5 +1,11 @@
 param([int]$ParentPid = 0)
 
+# Load required assemblies for Zip file handling and web services
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.Net.Http
+
+$utf8 = [system.text.encoding]::utf8
+
 if ($ParentPid -gt 0) {
     $currentPid = $PID
     $monitorScript = {
@@ -38,13 +44,18 @@ class BjdItem {
 
 $port = 8000; $basedir = get-location; $savedzip = join-path $basedir "official_bjd.zip"
 $global:bjddata = [System.Collections.Generic.List[BjdItem]]::new()
+$global:isReady = $false
 
 function load-bjd-to-memory() {
-    if (!(test-path $savedzip)) { return $false }
+    if (!(test-path $savedzip)) { 
+        write-host "[err] $savedzip not found!" -foregroundcolor red
+        return $false 
+    }
     write-host "[bjd] Initializing final precise engine..." -foregroundcolor cyan
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($savedzip)
         $entry = $zip.Entries | Where-Object { $_.FullName -like "*.txt" } | Select-Object -First 1
+        if ($null -eq $entry) { throw "No .txt file found in ZIP" }
         $stream = $entry.Open(); $reader = new-object system.io.streamreader($stream, [system.text.encoding]::getencoding(949))
         $raw = $reader.ReadToEnd().Replace("\0",""); $reader.close(); $stream.close(); $zip.Dispose()
         $tempList = [System.Collections.Generic.List[BjdItem]]::new(35000); $s_pe = [string][char]0xD3D0; $s_ji = [string][char]0xC9C0
@@ -55,8 +66,12 @@ function load-bjd-to-memory() {
             if ($p.length -ge 2) { $tempList.Add([BjdItem]::new($p[0].trim(), $p[1].trim())) }
         }
         $global:bjddata = $tempList | Sort-Object { $_.norm.Length } -Descending
+        $global:isReady = $true
         write-host "[bjd] Ready ($($global:bjddata.Count))" -foregroundcolor green; return $true
-    } catch { write-host "[err] $($_.Exception.Message)" -foregroundcolor red }
+    } catch { 
+        write-host "[err] $($_.Exception.Message)" -foregroundcolor red 
+        $global:isReady = $false
+    }
     return $false
 }
 
@@ -66,7 +81,7 @@ function handle-request($ctx) {
     try {
         if ($req.httpmethod -eq "get") {
             if ($p -eq "/api/bjd/status") {
-                $statusJson = "{`"status`":`"ok`",`"count`":$($global:bjddata.Count),`"isReady`":true}"
+                $statusJson = "{`"status`":`"ok`",`"count`":$($global:bjddata.Count),`"isReady`":$($global:isReady.ToString().ToLower())}"
                 $buf = $utf8.getbytes($statusJson); $ctx.response.contenttype="application/json"; $ctx.response.contentlength64=$buf.length; $ctx.response.outputstream.write($buf,0,$buf.length); $ctx.response.close()
             }
             elseif ($p -eq "/api/bjd/all") {

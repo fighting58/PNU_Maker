@@ -24,6 +24,7 @@ Welcome to the central hub of AntiGravity specialized agents. These skills empow
 | [**Frontend Design**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/design/frontend-design/SKILL.md) | High-quality web interface development. | React components, landing pages, dashboards. |
 | [**Theme Factory**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/design/theme-factory/SKILL.md) | Professional artifact styling and themes. | Branding, document styling, color palettes. |
 | [**UI/UX Pro Max**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/design/ui-ux-pro-max/SKILL.md) | Design intelligence and UX guidelines. | UX audits, accessibility, design systems. |
+| [**Design Optimizer**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/design-optimizer/SKILL.md) | Iterative design improvement and scoring. | Design optimization, benchmarking, scoring. |
 
 ---
 
@@ -35,17 +36,6 @@ Welcome to the central hub of AntiGravity specialized agents. These skills empow
 | [**Skill Manager**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/core/skill-manager/SKILL.md) | **(NEW)** Central orchestrator for all skills. | Ecosystem navigation, skill selection. |
 | [**Skill Creator**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/core/skill-creator/SKILL.md) | Create, optimize, and test new skills. | Adding new AI capabilities, benchmarking. |
 | [**Karpathy Guidelines**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/core/karpathy-guidelines/SKILL.md) | Behavioral coding best practices. | Code review, refactoring, error reduction. |
-
----
-
-### ⚙️ Automation & System Utilities
-*Ensuring seamless deployment and lifecycle management.*
-
-| Skill | Description | Primary Use Case |
-| :--- | :--- | :--- |
-| [**Startup Script Builder**](file:///c:/Users/Kim/Documents/AntiGravity/.agents/skills/automation/startup-script-builder/SKILL.md) | **(NEW)** Generate robust, auto-closing startup scripts. | Portable deployments, lifecycle management. |
-
----
 
 ---
 
